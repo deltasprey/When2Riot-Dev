@@ -1,0 +1,46 @@
+### Resources
+https://docs.discord.com/developers/resources/channel#create-channel-invite
+https://firebase.google.com/docs/functions/config-env
+
+
+
+### Discord
+## General
+Application ID => deploy-commands.js line 1
+Public Key => index.js line 14 (signature verification)
+Interactions Endpoint URL => Firebase URL + exports.function_name (index.js last line) (e.g., "api") + endpoint (index.js line 10 (app.post path))
+
+
+## Installation
+Install Link => None
+
+
+## OAuth2
+# Scopes
+bot
+applications.commands
+
+# Permissions
+Create Instant Invite
+View Channels
+Send Messages
+
+
+## Bot
+Token => Store as "DISCORD_TOKEN" Firebase secret
+
+
+
+### Firebase
+firebase login
+firebase init functions
+firebase functions:secrets:set DISCORD_TOKEN
+firebase functions:secrets:access DISCORD_TOKEN
+firebase functions:secrets:set DISCORD_CLIENT_SECRET
+firebase functions:secrets:access DISCORD_CLIENT_SECRET
+
+
+
+### Publishing
+cd functions
+npm run dev
