@@ -1,6 +1,6 @@
 const { onRequest } = require("firebase-functions/https");
 const admin = require("firebase-admin");
-//const { getFunctions } = require("firebase-admin/functions");
+const { onSchedule } = require("firebase-functions/scheduler");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -86,13 +86,41 @@ exports.send_future_message = onRequest(async (req, res) => {
             return res.status(400).json({ error: "Missing code" });
         }
 
-        // await getFunctions().taskQueue("processTask").enqueue(
-        //     { content: "Example scheduled message", channelId: channelId },
-        //     { scheduleTime: new Date(Date.now() + 30 * 1000) } // 30 seconds
-        // );
+        const docRef = db.collection("Scheduled_Jobs").doc();
+        await docRef.set({
+            runAt: Date.now() + 30 * 1000, // 30 seconds
+            content: "Example scheduled message",
+            channelId: channelId
+        });
         res.json({ message: "Task scheduled!" });
     } catch (error) {
         console.error("Error:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
 });
+
+exports.job_runner = onSchedule({ secrets: ["DISCORD_TOKEN"], schedule: "*/5 * * * *" }, async () => {
+    const snapshot = await db.collection("Scheduled_Jobs")
+        .where("runAt", "<=", Date.now())
+        .limit(50) // batch size
+        .get();
+    if (snapshot.empty) { return; }
+
+    const promises = [];
+    snapshot.forEach(doc => promises.push(processJob(doc)));
+    await Promise.all(promises);
+});
+
+async function processJob(doc) {
+    const job = doc.data();
+    const ref = doc.ref;
+    try {
+        const response = await fetch(`https://discord.com/api/v10/channels/${job.channelId}/messages`, {
+            method: "POST",
+            headers: { "Authorization": `Bot ${process.env.DISCORD_TOKEN}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ content: job.content })
+        });
+        if (response.ok) { await ref.delete(); }
+        else { await ref.update({ error: await response.json() }); }
+    } catch (err) { await ref.update({ error: err.message }); }
+}
