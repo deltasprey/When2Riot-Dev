@@ -1,6 +1,7 @@
 import { DiscordSDK } from "@discord/embedded-app-sdk";
 
 // Setup scheduled message button
+document.getElementById("datetime").innerHTML = new Date();
 document.getElementById("future-btn").onclick = async () => {
   await fetch("send_future_message", {
     method: "POST",
